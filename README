@@ -1,0 +1,6 @@
+This is the beginnings of a TTR implementation in Python 3.4.3.  Run
+the examples in the files example-records.py and example-types.py
+
+Coming soon, among other things, are record type merging and string
+types.
+
