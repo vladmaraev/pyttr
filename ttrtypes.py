@@ -1,6 +1,6 @@
 from collections import deque
 #from types import MethodType
-from utils import gensym, some_condition, forall, substitute, show, showall
+from utils import gensym, some_condition, forall, forsome, substitute, show, showall
 from records import Rec
 
 
@@ -53,6 +53,9 @@ class Type:
     def query(self, a):
         if a in self.witness_cache: return True
         elif isinstance(a,HypObj) and show(self) in showall(a.types):
+            return True
+        elif isinstance(a,HypObj) and forsome(a.types,
+                                              lambda T: show(self) in showall(T.supertype_cache)):
             return True
         elif isinstance(a, LazyObj):
             if isinstance(a.eval(), LazyObj):
@@ -389,8 +392,12 @@ def ComputeDepType(r, DepType):
     if DepType[1] == []:
         #print(show(DepType[0]))
         return DepType[0]
-    else: 
-        newfun = DepType[0].appc(r.pathvalue(DepType[1][0]))
+    else:
+        pth = DepType[1][0]
+        if isinstance(pth,AbsPath):
+            newfun = DepType[0].appc(pth.rec.pathvalue(pth.path))
+        else:
+            newfun = DepType[0].appc(r.pathvalue(DepType[1][0]))
         #print(show(newfun))
         return ComputeDepType(r, (newfun, DepType[1][1:]))
 
@@ -406,11 +413,14 @@ def CheckPathList(Paths, RecT):
     return forall(Paths, lambda x: CheckPath(x,RecT))
            
 def CheckPath(path,RecT):
-    res = RecT.pathvalue(path)
-    if isinstance(res,str) and 'not a label' in res:
+    if isinstance(path, AbsPath):
+        return CheckPath(path.path,path.rec)
+    else:
+        res = RecT.pathvalue(path)
+        if isinstance(res,str) and 'not a label' in res:
             #print(res)
             return False
-    else: return True
+        else: return True
 
 def ProcessDepFields(depfields,res,rtype,mode='real'):
     if len(depfields.comps.__dict__) == 0:
@@ -471,6 +481,7 @@ Re.create = create_method_rec.__get__(Re, Re.__class__)#MethodType(create_method
 
 RecTy = Type('RecTy')
 RecTy.witness_conditions = [lambda T: isinstance(T,RecType)]
+RecTy.supertype_cache = [Ty]
 RecTy.learn_witness_condition = logtype
 RecTy.create = create_method_type.__get__(RecTy, RecTy.__class__)#MethodType(create_method_type,RecTy,Type)
 
@@ -571,6 +582,15 @@ class Possibility:
         self.model = d
     def show(self):
         return '\n'+self.name + ':\n'+'_'*45 +'\n'+ '\n'.join([show(i)+': '+str(self.model[i].witness_cache) for i in self.model])+'\n'+'_'*45+'\n'
+
+class AbsPath(object):
+    def __init__(self,rec,path):
+        self.rec = rec
+        self.path = path
+    def show(self):
+        return show(self.rec)+'.'+show(self.path)
+    def subst(self,v,a):
+        return AbsPath(substitute(self.rec,v,a),substitute(self.path,v,a))
 
 #============================
 

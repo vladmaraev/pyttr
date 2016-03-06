@@ -48,6 +48,8 @@ def substitute(obj,v,a):
         return a
     elif isinstance(obj,list):
         return [substitute(x,v,a) for x in obj]
+    elif isinstance(obj,tuple):
+        return tuple((substitute(x,v,a) for x in obj))
     elif 'subst' in dir(obj):
         return obj.subst(v,a)
     else: 

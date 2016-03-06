@@ -1,7 +1,7 @@
 #sys.path.append('')
 
-from ttrtypes import Type, BType, PType, Pred, MeetType, JoinType, ListType, SingletonType, HypObj, LazyObj,\
-    FunType, RecType, Fun, Ty, Re, RecTy, Possibility
+from ttrtypes import Type, BType, PType, Pred, MeetType, JoinType, ListType, \
+SingletonType, HypObj, LazyObj, FunType, RecType, Fun, Ty, Re, RecTy, Possibility, AbsPath
 from records import Rec
 from utils import show, example
 
@@ -678,4 +678,47 @@ RecType({'x' : FunType(Ind,RecTy),
          create_hypobj()
          )
          )
+
+example(81)
+print(
+    show(
+        RecType({'x' : FunType(Ind,RecTy),
+         'y' : Ind,
+         'w' : Ind,
+         'z' : (Fun('f',FunType(Ind,RecTy), Fun('v',Ind,SingletonType(RecTy,LazyObj(['f','@','v'])))),
+                 ['x','y'])
+         }).
+         subtype_of(RecType({'z' : RecTy}))
+         )
+         )
+
+example(82)
+TT1 = FunType(Ind, RecTy)
+TT2 = FunType(Ind, Ty)
+TT3 = FunType(TT1, TT2)
+ff = Fun('f', TT1, Fun('x', Ind, LazyObj(['f','@','x'])))
+print(TT3.query(ff))
+
+example(83)
+print(
+Ty.query(RecType({'c' : (Fun('v', Ind, PType(man,['v'])),
+                       [AbsPath(Rec({'x' : 'j'}), 'x')])}))
+                       )
+
+example(84)
+TxInd = RecType({'x' : Ind})
+print(
+    FunType(TxInd, RecTy).
+    query(Fun('r', TxInd, RecType({'c' : (Fun('v', Ind, PType(man,['v'])),
+                        [AbsPath('r', 'x')])})))
+                       )
+
+example(85)
+print(
+    show(
+        Fun('r', TxInd, RecType({'c' : (Fun('v', Ind, PType(man,['v'])),
+                        [AbsPath('r', 'x')])})).app(Rec({'x' : 'j'}))
+                        ))
+                        
+
 
