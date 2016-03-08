@@ -1,6 +1,6 @@
 from collections import deque
 #from types import MethodType
-from utils import gensym, some_condition, forall, forsome, substitute, show, showall
+from utils import gensym, some_condition, forall, forsome, substitute, show, showall, ttracing
 from records import Rec
 
 
@@ -89,6 +89,18 @@ class Type:
         if self == v:
             return a
         else: return self
+    def merge(self,T):
+        if self.subtype_of(T):
+            return self
+        elif T.subtype_of(self):
+            return T
+        else:
+            return MeetType(self,T)
+    def amerge(self,T):
+        if self.subtype_of(T):
+            return self
+        else:
+            return T
 
 class BType(Type):
     def __init__(self,name=gensym('BT')):
@@ -139,7 +151,8 @@ class MeetType(Type):
     def show(self):
         return '('+ self.comps.left.show()+'&'+self.comps.right.show()+')'
     def learn_witness_condition(self,c):
-        print('Meet types are logical and cannot learn new conditions')
+        if ttracing('learn_witness_condition'):
+            print('Meet types are logical and cannot learn new conditions')
     def validate(self):
         if isinstance(self.comps.left, Type) \
                 and isinstance(self.comps.right, Type):
@@ -185,6 +198,16 @@ class JoinType(Type):
         else:
             self.witness_cache.append(a)
             return True
+    def subtype_of(self,T):
+        if T in self.supertype_cache:
+            return True
+        elif equal(self,T):
+            return True
+        else:
+            if self.comps.left.subtype_of(T) and self.comps.right.subtype_of(T):
+                return True
+            else:
+                return False
     def subst(self,v,a):
         if self == v:
             return a
@@ -316,12 +339,15 @@ class RecType(Type):
         if (len(splits) == 1):
             if splits[0] in dir(self.comps):
                 return self.comps.__getattribute__(splits[0])
-            else: 
-                return splits[0]+' not a label in '+self.show()
+            else:
+                if ttracing('pathvalue'):
+                    print(splits[0]+' not a label in '+self.show())
+                return None
         else:
             addr = splits.popleft()
             if 'pathvalue' not in dir(self.comps.__getattribute__(addr)):
-                print('No paths into '+show(self.comps.__getattribute__(addr)))
+                if ttracing('pathvalue'):
+                    print('No paths into '+show(self.comps.__getattribute__(addr)))
                 return None
             else:
                 return self.comps.__getattribute__(addr).pathvalue(".".join(splits))
@@ -350,7 +376,7 @@ class RecType(Type):
 
         
     
-    #Recursive for future use            
+    #Recursive for future use??            
     def Relabel(self, oldlabel, newlabel, recursive=False):
         if oldlabel in self.comps.__dict__.keys():
             value = self.comps.__dict__[oldlabel]
@@ -369,6 +395,63 @@ class RecType(Type):
                 res.addfield(l,substitute(self.comps.__getattribute__(l),v,a))
         #print(show(res))
         return res
+
+    def merge(self,T):
+        if isinstance(T,RecType):
+            res = RecType({})
+            SharedLabels = [l for l in LabelsRecType(self) if l in LabelsRecType(T)]
+            OtherLabelsSelf = [l for l in LabelsRecType(self) if l not in LabelsRecType(T)]
+            OtherLabelsT = [l for l in LabelsRecType(T) if l not in LabelsRecType(self)]
+            for label in SharedLabels:
+                T1 = AttValRecType(self,label)
+                T2 = AttValRecType(T,label)
+                if isinstance(T1, tuple):
+                    if isinstance(T2, tuple):
+                        if T1[1] == T2[1]:
+                            f1 = T1[0]
+                            f2 = T2[0]
+                            res.addfield(label, (merge_dep_types(f1,f2),T1[1]))
+                else:
+                    res.addfield(label, T1.merge(T2))
+            for label in OtherLabelsSelf:
+                res.addfield(label,AttValRecType(self,label))
+            for label in OtherLabelsT:
+                res.addfield(label,AttValRecType(T,label))
+            return res
+        else:
+            return MeetType(self,T)
+def amerge(self,T):
+        if isinstance(T,RecType):
+            res = RecType({})
+            SharedLabels = [l for l in LabelsRecType(self) if l in LabelsRecType(T)]
+            OtherLabelsSelf = [l for l in LabelsRecType(self) if l not in LabelsRecType(T)]
+            OtherLabelsT = [l for l in LabelsRecType(T) if l not in LabelsRecType(self)]
+            for label in SharedLabels:
+                res.addfield(label,
+                             AttValRecType(self,label).amerge(AttValRecType(T,label)))
+            for label in OtherLabelsSelf:
+                res.addfield(label,AttValRecType(self,label))
+            for label in OtherLabelsT:
+                res.addfield(label,AttValRecType(T,label))
+            return res
+        elif self.subtype_of(T):
+            return self
+        else:
+            return T
+
+def LabelsRecType(T):
+    if isinstance(T, RecType):
+        return T.comps.__dict__.keys()
+    else:
+        print('LabelsRecType not defined on '+ show(T) +' (not a record type)')
+        return None
+
+def AttValRecType(T,l):
+    if isinstance(T, RecType):
+        return T.comps.__getattribute__(l)
+    else:
+        print('AttValRecType not defined on '+show(T)+' (not a record type)')
+        return None
        
 def RecOfRecType(r,T,M):
     TypeLabels = [l for l in T.comps.__dict__]
@@ -385,21 +468,21 @@ def QueryField(l,r,T,M):
     if isinstance(TInField, Type):
         return TInField.in_poss(M).query(Obj) 
     else:
-        TResolved = ComputeDepType(r,TInField)
+        TResolved = ComputeDepType(r,TInField,M)
         return TResolved.in_poss(M).query(Obj)
 
-def ComputeDepType(r, DepType):
+def ComputeDepType(r, DepType, M):
     if DepType[1] == []:
         #print(show(DepType[0]))
         return DepType[0]
     else:
         pth = DepType[1][0]
         if isinstance(pth,AbsPath):
-            newfun = DepType[0].appc(pth.rec.pathvalue(pth.path))
+            newfun = DepType[0].appc_m(pth.rec.pathvalue(pth.path), M)
         else:
-            newfun = DepType[0].appc(r.pathvalue(DepType[1][0]))
+            newfun = DepType[0].appc_m(r.pathvalue(DepType[1][0]), M)
         #print(show(newfun))
-        return ComputeDepType(r, (newfun, DepType[1][1:]))
+        return ComputeDepType(r, (newfun, DepType[1][1:]), M)
 
 def CheckField(i,RecT):
     if isinstance(i[1], tuple): 
@@ -417,7 +500,7 @@ def CheckPath(path,RecT):
         return CheckPath(path.path,path.rec)
     else:
         res = RecT.pathvalue(path)
-        if isinstance(res,str) and 'not a label' in res:
+        if res == None:
             #print(res)
             return False
         else: return True
@@ -429,7 +512,7 @@ def ProcessDepFields(depfields,res,rtype,mode='real'):
         oldlength = len(depfields.comps.__dict__)
         todelete = []
         for l in depfields.comps.__dict__:
-            Resolved = ComputeDepType(res,depfields.comps.__getattribute__(l))
+            Resolved = ComputeDepType(res,depfields.comps.__getattribute__(l),rtype.poss)
             #print(show(Resolved))
             if 'not a label' in show(Resolved):  #Is this condition still used?
                 pass
@@ -449,7 +532,8 @@ def ProcessDepFields(depfields,res,rtype,mode='real'):
         if len(depfields.comps.__dict__) < oldlength:
             return ProcessDepFields(depfields,res,rtype,mode)
         else:
-            print('Unresolved dependency in '+show(rtype))
+            if ttracing('create') or ttracing('create_hypobj'):
+                print('Unresolved dependency in '+show(rtype))
             return None
                                 
         
@@ -462,7 +546,8 @@ def ProcessDepFields(depfields,res,rtype,mode='real'):
 Ty = Type('Ty') 
 Ty.witness_conditions = [lambda T : isinstance(T,Type)]
 def logtype(x): 
-    print('This is a logical type and cannot learn new conditions')
+    if ttracing('learn_witness_condition'):
+        print('This is a logical type and cannot learn new conditions')
 Ty.learn_witness_condition = logtype
 def create_method_type(self):
     a = gensym('_T')
@@ -509,6 +594,8 @@ class Fun(object):
         else: return False
     def validate_arg(self,arg):
         return self.domain_type.query(arg)
+    def validate_arg_m(self,arg,M):
+        return self.domain_type.in_poss(M).query(arg)
     def app(self,arg):
         if self.var == self.body: 
             return arg
@@ -527,14 +614,27 @@ class Fun(object):
         if self.validate_arg(arg):
             return self.app(arg)
         else:
-            print (self.show()+'('+show(arg)+'): badly typed function application')
+            if ttracing('appc'):
+                print (self.show()+'('+show(arg)+'): badly typed function application')
             return None
-                
+    def appc_m(self,arg,M):
+        if self.validate_arg_m(arg,M):
+            return self.app(arg)
+        else:
+            if ttracing('appc_m'):
+                print (self.show()+'('+show(arg)+'): badly typed function application')
+            return None            
                 
     def subst(self,v,a):
         if self.var == v:
             return self  # v is bound and not replaced
         else: return Fun(self.var,substitute(self.domain_type,v,a),substitute(self.body,v,a))        
+
+def merge_dep_types(f1,f2):
+    var = gensym('v')
+    return Fun(var, f1.domain_type.merge(f2.domain_type),
+               f1.body.subst(f1.var,var).merge(f2.body.subst(f2.var,var)))
+ # Needs to be made recursive for dependent types with more than one argument   
 
 class HypObj(object):
     def __init__(self,types):
@@ -616,7 +716,8 @@ def ti_apply(Tf, Targ):
         and Targ.subtype_of(Tf.comps.domain):
         return Tf.comps.range
     else:
-        print('Not a well-typed function application: '+ show(Tf) + show(Targ))
+        if ttracing('ti_apply'):
+            print('Not a well-typed function application: '+ show(Tf) + show(Targ))
         return None
     
 

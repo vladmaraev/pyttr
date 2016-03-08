@@ -3,7 +3,7 @@
 from ttrtypes import Type, BType, PType, Pred, MeetType, JoinType, ListType, \
 SingletonType, HypObj, LazyObj, FunType, RecType, Fun, Ty, Re, RecTy, Possibility, AbsPath
 from records import Rec
-from utils import show, example
+from utils import show, example, ttrace, nottrace, ttracing
 
 Ind = BType('Ind')
 
@@ -111,7 +111,9 @@ print(T1.subtype_of(T3))
 print(T3.subtype_of(T1))
 print(T.subtype_of(T3))
 
+ttrace()
 T.learn_witness_condition(lambda x: x)
+nottrace()
 
 f = Fun('x',Ind,'x')
 print(f.app('j'))
@@ -133,14 +135,21 @@ print(show(p1))
 
 p1c = f1.appc('j')
 print(show(p1c))
-print(show(f1.appc('x')))
 
+
+ttrace()
+print(show(f1.appc('x')))
+nottrace()
 
 print(Ty.query(T))
 print(Ty.query(Ty))
 print(Ty.query(p1))
 print(Ty.query_nonspec()) # Presumably this should be True since at least Ty.query(Ty) returns True
+
+
+ttrace()
 Ty.learn_witness_condition(lambda x: x)
+nottrace()
 
 IndToTy = FunType(Ind,Ty)
 print(IndToTy.query(f1))
@@ -223,7 +232,7 @@ print(RecType({'x':Ind, \
                
 print(show(T_man))
 
-print(show(T_man.create()))
+print(show(T_man.create())) 
 
 print(show(M))
 
@@ -321,14 +330,10 @@ print(RecType({'x':Ind,
                'e': (Fun('v',Ind,PType(man,['v'])),['y'])})
       .subtype_of(RecType({'x':Ind,
                            'y':Ind,
-                           'e': (Fun('v',Ind,PType(man,['v'])),['y'])})))  
+                           'e': (Fun('v',Ind,PType(man,['v'])),['y'])})))
+#True but returns an error
 
-print(RecType({'x':Ind,
-               'y':(Fun('v',Ind,SingletonType(Ind,'v')),['x']),
-               'e': (Fun('v',Ind,PType(man,['v'])),['y'])}).
-      subtype_of(RecType({'x':Ind,
-                          'y':Ind,
-                          'e': (Fun('v',Ind,PType(man,['v'])),['y'])})))
+
 
 R1 = RecType({'x':Ind,
               'y':(Fun('v',Ind,SingletonType(Ind,'v')),['x']),
@@ -356,44 +361,54 @@ print(RecTy.query(RecType({'x' : Ty,
 print(RecType({'x' : Ty,
                'e' : (Fun('v',Ind,PType(man,['v'])),['x'])}).validate())
 
+example(47)
+ttrace()
 h1 = RecType({'x' : Ty,
               'e' : (Fun('v',Ind,PType(man,['v'])),['x'])}).create_hypobj()
-
 print(show(h1))
+nottrace()
 
+example(48)
 print(RecType({'x' : RecType({'x' : Ind,
                               'e' : (Fun('v',Ind,PType(man,['v'])),['x'])})}).
             validate())
 
 
+example(49)
 print(RecType({'x' : (Fun('v',Ind,RecType({'x' : Ind,
                                            'e' : PType(man,['v'])})),['x'])}).
             validate())
 
 
+example(50)
 print(show(RecType({'x' : RecType({'x' : Ind,
                                    'e' : (Fun('v',Ind,PType(man,['v'])),['x'])})})
            .create()))
 
+example(51)
 print(show(RecTy.create()))
 
+example(52)
 T5 = RecTy.create()
 print(RecTy.query(T5))
 
 
 
+example(53)
 print(RecType({'x' : RecType({'x' : Ind,\
                               'e' : (Fun('v',Ind,PType(man,['v'])),['y'])}),
                 'y' : Ind}).
             validate()) #False
 
 
+example(54)
 print(RecType({'x' : (Fun('v',Ind,RecType({'x' : Ind,
                                            'e' : PType(man,['v'])})),['y']),
                'y' : Ind}).
             validate())
 
 
+example(55)
 print(show(RecType({'x' : (Fun('v',Ind,RecType({'x' : Ind,
                                            'e' : PType(man,['v'])})),['y']),
                'y' : Ind}).
@@ -402,11 +417,14 @@ print(show(RecType({'x' : (Fun('v',Ind,RecType({'x' : Ind,
 
 
 
+example(56)
 print(show(RecType({'x' : (Fun('v',Ind,RecType({'x' : Ind,
                                                 'e' : PType(man,['v'])})),['y']),
                     'y' : Ind}).
             create_hypobj()))
 
+
+example(57)
 print(RecType({'x' : RecType({'x' : Ind,
                               'e' : (Fun('v',Ind,PType(man,['v'])),['x'])}),
                'y' : (Fun('v',Ind,SingletonType(Ind,'v')),['x.x'])}).
@@ -475,18 +493,22 @@ validate()
 ) #False
 
 example(64)
+ttrace()
 print(
 RecType({'x' : (Fun('v',Ind,SingletonType(Ind,'v')),['y']),
          'y' : (Fun('v',Ind,SingletonType(Ind,'v')),['x'])}).
 create()
 ) #None
+nottrace()
 
 example(65)
+ttrace()
 print(
 RecType({'x' : (Fun('v',Ind,SingletonType(Ind,'v')),['y']),
          'y' : (Fun('v',Ind,SingletonType(Ind,'v')),['x'])}).
 create_hypobj()\
 ) #None
+nottrace()
 
 example(66)
 print(\
@@ -717,8 +739,89 @@ example(85)
 print(
     show(
         Fun('r', TxInd, RecType({'c' : (Fun('v', Ind, PType(man,['v'])),
-                        [AbsPath('r', 'x')])})).app(Rec({'x' : 'j'}))
+                            [AbsPath('r', 'x')])})).app(Rec({'x' : 'j'}))
                         ))
                         
 
 
+example(86)
+print(
+    show(
+        RecType({'x' : Ind,
+                 'y' : Ind})
+        .merge(RecType({'x':Ind}))
+        )
+        )
+
+example(87)
+print(
+    show(
+     RecType({'x':Ind}).
+     merge(RecType({'x' : Ind,
+                    'y' : Ind}))
+                    )
+                    )
+
+example(88)
+print(
+    show(
+        JoinType(Ind,Ty).merge(RecTy)))
+
+example(89)
+print(
+    show(
+        JoinType(Ind,Ty).merge(Ind)
+    )
+    )
+
+example(90)
+print(
+    show(
+        JoinType(Ind,Ty).merge(JoinType(Ind,RecTy))
+        )
+        )
+
+example(91)
+print(
+    show(
+        Ind.merge(JoinType(Ind,Ty))
+        ))
+
+example(92)
+print(
+    show(
+        RecType({'a' : Ind}).merge(RecType({'b' : Ind}))
+        )
+        )
+
+example(93)
+print(
+    show(
+        RecType({'a' : Ind,
+                 'c' : JoinType(Ind,Ty)}).merge(RecType({'b' : Ind,
+                                                         'c' : Ind}))
+                                                         )
+                                                         )
+
+example(94)
+T1 = RecType({'x' : Ind,
+              'y' : (Fun('v', Ind, RecType({'a' : Ind,
+                                            'c' : PType(man, ['v'])})), ['x']),
+              'z' : Ind})
+T2 = RecType({'x' : Ind,
+              'y' : (Fun('v', Ind, RecType({'a' : Ind,
+                                            'c' : PType(man, ['v'])})), ['x']),
+              'w' : Ind})
+print(
+    show(
+        T1.merge(T2)
+        )
+        )
+
+                                                              
+
+                                               
+                                                        
+
+
+             

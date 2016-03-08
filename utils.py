@@ -58,3 +58,43 @@ def substitute(obj,v,a):
 def example(num):
     print('\n\nExample '+str(num)+':\n')
  
+
+######################
+
+# Tracing
+
+######################
+
+ttracing_list = list()
+
+def ttrace(s='all'):
+    global ttracing_list
+    if s in ttracing_list:
+        pass
+    elif s=='all':
+        ttracing_list.clear()
+        ttracing_list += ['learn_witness_condition',
+                          'pathvalue',
+                          'create',
+                          'create_hypobj',
+                          'appc',
+                          'appc_m',
+                          'ti_apply']
+    else: ttracing_list.append(s)
+    return ttracing_list
+
+def nottrace(s='all'):
+    global ttracing_list
+    if s == 'all':
+        ttracing_list.clear()
+    elif s in ttracing:
+        ttracing_list.remove(s)
+    else: pass
+    return ttracing_list
+
+def ttracing(s):
+    global ttracing_list
+    if s in ttracing_list:
+        return True
+    else:
+        return False
