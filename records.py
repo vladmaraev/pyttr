@@ -1,11 +1,9 @@
 from collections import deque
-from utils import show
+from utils import show,ttracing
 
 class Rec(object):
     def __init__(self,d={}):
         for item in d.items():
-            #Will we be adding nested dicts or will they be record objects already?
-            #d can be a nested dict.  See line 9 of example-records.py
             if isinstance(item[1], dict):
                 self.addfield(item[0], Rec(item[1]))
             else:
@@ -63,14 +61,18 @@ class Rec(object):
             if splits[0] in dir(self):
                 return self.__getattribute__(splits[0])
             else:
-                return splits[0]+' not a label in '+self.show()
+                if ttracing('pathvalue'):
+                    print(splits[0]+' not a label in '+self.show())
+                return None
         else:
             addr = splits.popleft()
             if addr not in dir(self):
-                print('No attribute '+addr+' in '+show(self))
+                if ttracing('pathvalue'):
+                    print('No attribute '+addr+' in '+show(self))
                 return None
             elif 'pathvalue' not in dir(self.__getattribute__(addr)):
-                print('No paths into '+show(self.__getattribute__(addr)))
+                if ttracing('pathvalue'):
+                    print('No paths into '+show(self.__getattribute__(addr)))
                 return None
             else:
                 return self.__getattribute__(addr).pathvalue(".".join(splits))

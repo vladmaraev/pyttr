@@ -352,7 +352,9 @@ class RecType(Type):
             else:
                 return self.comps.__getattribute__(addr).pathvalue(".".join(splits))
     def learn_witness_condition(self,c):
-        return 'Record types cannot learn new witness conditions'
+        if ttracing('learn_witness_condition'):
+            print('Record types cannot learn new witness conditions')
+        return None
     def create(self):
         res = Rec()
         depfields = RecType()
@@ -405,12 +407,19 @@ class RecType(Type):
             for label in SharedLabels:
                 T1 = AttValRecType(self,label)
                 T2 = AttValRecType(T,label)
-                if isinstance(T1, tuple):
-                    if isinstance(T2, tuple):
-                        if T1[1] == T2[1]:
-                            f1 = T1[0]
-                            f2 = T2[0]
-                            res.addfield(label, (merge_dep_types(f1,f2),T1[1]))
+                if isinstance(T1, tuple) and isinstance(T2, tuple):
+                    if T1[1] == T2[1]:
+                        f1 = T1[0]
+                        f2 = T2[0]
+                        res.addfield(label, (merge_dep_types(f1,f2),T1[1]))
+                    else:
+                        f1 = T1[0]
+                        f2 = T2[0]
+                        res.addfield(label, (combine_dep_types(f1,f2),T1[1]+T2[1]))
+                elif isinstance(T1,tuple) and isinstance(T2,Type):
+                    res.addfield(label, (combine_dep_types(T1[0],T2),T1[1]))
+                elif isinstance(T1,Type) and isinstance(T2,tuple):
+                    res.addfield(label, (combine_dep_types(T1,T2[0]),T2[1]))
                 else:
                     res.addfield(label, T1.merge(T2))
             for label in OtherLabelsSelf:
@@ -418,17 +427,40 @@ class RecType(Type):
             for label in OtherLabelsT:
                 res.addfield(label,AttValRecType(T,label))
             return res
+        elif self.subtype_of(T):
+            return self
         else:
             return MeetType(self,T)
-def amerge(self,T):
+    def amerge(self,T):
         if isinstance(T,RecType):
             res = RecType({})
             SharedLabels = [l for l in LabelsRecType(self) if l in LabelsRecType(T)]
             OtherLabelsSelf = [l for l in LabelsRecType(self) if l not in LabelsRecType(T)]
             OtherLabelsT = [l for l in LabelsRecType(T) if l not in LabelsRecType(self)]
             for label in SharedLabels:
-                res.addfield(label,
-                             AttValRecType(self,label).amerge(AttValRecType(T,label)))
+                T1 = AttValRecType(self,label)
+                T2 = AttValRecType(T,label)
+                if isinstance(T1, tuple) and isinstance(T2, tuple):
+                    if T1[1] == T2[1]:
+                        f1 = T1[0]
+                        f2 = T2[0]
+                        if subtype_of_dep_types(f1,f2):
+                            res.addfield(label, T1)
+                        else:
+                            res.addfield(label, T2)
+                    else:
+                        res.addfield(label, T2)
+                elif isinstance(T1,tuple) and isinstance(T2,Type):
+                    res.addfield(label, T2)
+                elif isinstance(T1,Type) and isinstance(T2,tuple):
+                    res.addfield(label,T2)
+                elif isinstance(T1,Type) and isinstance(T2,Type):
+                    if T1.subtype_of(T2):
+                        res.addfield(label, T1)
+                    else:
+                        res.addfield(label, T1.amerge(T2))
+                else:
+                   res.addfield(label,T2) 
             for label in OtherLabelsSelf:
                 res.addfield(label,AttValRecType(self,label))
             for label in OtherLabelsT:
@@ -455,7 +487,10 @@ def AttValRecType(T,l):
        
 def RecOfRecType(r,T,M):
     TypeLabels = [l for l in T.comps.__dict__]
-    if forall(TypeLabels, lambda l: l in r.__dict__ and QueryField(l,r,T,M)):
+    RecordLabels = [l for l in r.__dict__]
+    if forsome(TypeLabels, lambda l: l not in RecordLabels):
+        return False
+    elif forall(TypeLabels, lambda l: l in RecordLabels and QueryField(l,r,T,M)):
         return True
     else:
         return False
@@ -536,8 +571,105 @@ def ProcessDepFields(depfields,res,rtype,mode='real'):
                 print('Unresolved dependency in '+show(rtype))
             return None
                                 
-        
-    
+class TTRStringType(Type):
+    def __init__(self,list):
+        self.comps = Rec({'types' : list})
+        self.witness_cache = []
+        self.supertype_cache = []
+        self.witness_conditions = \
+          [lambda s: isinstance(s,TTRString) \
+           and len(s.items) == len(self.comps.types) \
+           and forall([x for x in range(len(self.comps.types))], \
+                      lambda i: self.comps.types[i].in_poss(self.poss).query(s.items[i]))]
+        self.poss = ''
+    def in_poss(self,poss):
+        self.poss = poss
+        return self
+    def show(self):
+        return '^'.join([show(i) for i in self.comps.types])
+    def validate(self):
+        return forall(self.comps.types, lambda T: isinstance(T,Type))
+    def learn_witness_condition(self,c):
+        logtype(self)
+        return None
+    def create(self):
+        return TTRString([T.create() for T in self.comps.types])
+    def create_hypobj(self):
+        return TTRString([T.create_hypobj() for T in self.comps.types])
+    def subst(self,v,a):
+        if self == v:
+            return a
+        else:
+            return TTRStringType(substitute(self.comps.types,v,a))
+    def merge(self,T):
+        if self.subtype_of(T):
+            return self
+        elif T.subtype_of(self):
+            return T
+        elif isinstance(T,TTRStringType) and len(T.comps.types)==len(self.comps.types):
+            return TTRStringType([self.comps.types[i].merge(T.comps.types[i])
+                                  for i in range(len(self.comps.types))])
+        else:
+            return MeetType(self,T)
+    def amerge(self,T):
+        if self.subtype_of(T):
+            return self
+        elif isinstance(T,TTRStringType) and len(T.comps.types)==len(self.comps.types):
+            return TTRStringType([self.comps.types[i].amerge(T.comps.types[i])
+                                  for i in range(len(self.comps.types))])
+        else:
+            return T
+
+         
+class KPlusStringType(Type):
+    def __init__(self,T):
+        self.comps = Rec({'base_type' : T})
+        self.witness_cache = []
+        self.supertype_cache = []
+        self.witness_conditions = \
+          [lambda s: isinstance(s,TTRString) \
+           and len(s.items)>0 \
+           and forall(s.items,
+                      lambda a: self.comps.base_type.in_poss(self.poss).query(a))]
+        self.poss = ''
+    def show(self):
+        return show(self.comps.base_type)+'+'
+    def validate(self):
+        return isinstance(self.comps.base_type, Type)
+    def learn_witness_condition(self,c):
+        logtype(self)
+        return None
+    def create(self):
+        a = gensym('_sigma')
+        self.judge(a)
+        return(a)
+    def subtype_of(self,T):
+        if T in self.supertype_cache: 
+            return True
+        elif equal(self,T):
+            return True
+        elif isinstance(T,KPlusStringType) and self.comps.base_type.subtype_of(T.comps.base_type):
+            return True
+        else:
+            a = self.create_hypobj()
+            if T.query(a):
+                self.supertype_cache.append(T)
+                return True
+            else: return False
+    def subst(self,v,a):
+        if self == v:
+            return a
+        else:
+            return KPlusStringType(substitute(self.comps.base_type,v,a))
+    def merge(self,T):
+        if self.subtype_of(T):
+            return self
+        elif T.subtype_of(self):
+            return T
+        elif isinstance(T,KPlusStringType):
+            return KPlusStringType(self.comps.base_type.merge(T.comps.base_type))
+        else:
+            return MeetType(self,T)
  
 #==============================================================================
 # Types       
@@ -547,7 +679,7 @@ Ty = Type('Ty')
 Ty.witness_conditions = [lambda T : isinstance(T,Type)]
 def logtype(x): 
     if ttracing('learn_witness_condition'):
-        print('This is a logical type and cannot learn new conditions')
+        print(show(x)+' is a logical type and cannot learn new conditions')
 Ty.learn_witness_condition = logtype
 def create_method_type(self):
     a = gensym('_T')
@@ -631,10 +763,51 @@ class Fun(object):
         else: return Fun(self.var,substitute(self.domain_type,v,a),substitute(self.body,v,a))        
 
 def merge_dep_types(f1,f2):
-    var = gensym('v')
-    return Fun(var, f1.domain_type.merge(f2.domain_type),
-               f1.body.subst(f1.var,var).merge(f2.body.subst(f2.var,var)))
- # Needs to be made recursive for dependent types with more than one argument   
+    if isinstance(f1,Type) and isinstance(f1,Type):
+        return f1.merge(f2)
+    elif isinstance(f1,Fun) and isinstance(f2,Fun):
+        var = gensym('v')
+        return Fun(var, f1.domain_type.merge(f2.domain_type),
+                   merge_dep_types(f1.body.subst(f1.var,var),f2.body.subst(f2.var,var)))
+    else:
+        if ttracing('merge_dep_types'):
+            print(show(f1)+' and '+show(f2)+' cannot be merged.')
+        return None
+ 
+
+def combine_dep_types(f1,f2):
+    if isinstance(f1,Type) and isinstance(f2,Type):
+        return f1.merge(f2)
+    elif isinstance(f1,Fun) and isinstance(f2,Type):
+        var = gensym('v')
+        return Fun(var, f1.domain_type, combine_dep_types(f1.body.subst(f1.var,var),f2))
+    elif isinstance(f1,Type) and isinstance(f2,Fun):
+        var = gensym('v')
+        return Fun(var, f2.domain_type, combine_dep_types(f1,f2.body.subst(f2.var,var)))
+    elif isinstance(f1,Fun) and isinstance(f2,Fun):
+        var1 = gensym('v')
+        var2 = gensym('v')
+        return Fun(var1, f1.domain_type,
+                   Fun(var2, f2.domain_type, combine_dep_types(f1.body.subst(f1.var,var1),f2.body.subst(f2.var,var2))))
+    else:
+        if ttracing('combine_dep_types'):
+            print(show(f1)+' and '+show(f2)+' cannot be combined.')
+        return None
+
+def subtype_of_dep_types(f1,f2):
+    if isinstance(f1,Type) and isinstance(f2,Type):
+        return f1.subtype_of(f2)
+    elif isinstance(f1,Fun):
+        f1inst = f1.app(f1.domain_type.create_hypobj())
+        return subtype_of_dep_types(f1inst,f2)
+    elif isinstance(f2,Fun):
+        f2inst = f2.app(f2.domain_type.create_hypobj())
+        return subtype_of_dep_types(f1,f2inst)
+    else:
+        if ttracing('subtype_of_dep_types'):
+            print(show(f1)+ ' and '+show(f2)+' cannot be compared for subtyping.')
+        return None
+    
 
 class HypObj(object):
     def __init__(self,types):
@@ -691,6 +864,17 @@ class AbsPath(object):
         return show(self.rec)+'.'+show(self.path)
     def subst(self,v,a):
         return AbsPath(substitute(self.rec,v,a),substitute(self.path,v,a))
+
+class TTRString(object):
+    def __init__(self,list):
+        self.items = list
+    def concat(self,s):
+        if isinstance(s, TTRString):
+            return TTRString(self.items+s.items)
+        else:
+            return TTRString(self.items+[s])
+    def show(self):
+        return '^'.join([show(i) for i in self.items])
 
 #============================
 

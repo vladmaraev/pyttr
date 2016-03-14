@@ -79,6 +79,9 @@ def ttrace(s='all'):
                           'create_hypobj',
                           'appc',
                           'appc_m',
+                          'merge_dep_types',
+                          'combine_dep_types',
+                          'subtype_of_dep_types',
                           'ti_apply']
     else: ttracing_list.append(s)
     return ttracing_list

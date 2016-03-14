@@ -1,7 +1,7 @@
 #sys.path.append('')
 
 from ttrtypes import Type, BType, PType, Pred, MeetType, JoinType, ListType, \
-SingletonType, HypObj, LazyObj, FunType, RecType, Fun, Ty, Re, RecTy, Possibility, AbsPath
+SingletonType, HypObj, LazyObj, FunType, RecType, Fun, Ty, Re, RecTy, Possibility, AbsPath, TTRString, TTRStringType, KPlusStringType
 from records import Rec
 from utils import show, example, ttrace, nottrace, ttracing
 
@@ -818,10 +818,275 @@ print(
         )
         )
 
-                                                              
+example(95)
+T1 = RecType({'x' : Ind,
+              'y' : (Fun('v', Ind, RecType({'a' : Ind,
+                                            'c' : PType(man, ['v'])})), ['x']),
+              'z' : Ind})
+T2 = RecType({'x' : Ind,
+              'y' : (Fun('v', Ind, RecType({'a' : Ind,
+                                            'c' : PType(man, ['v'])})), ['z']),
+              'z' : Ind})
+print(
+    show(
+        T1.merge(T2)
+        )
+        )
 
-                                               
+example(96)
+T1 = RecType({'x' : SingletonType(Ind, 'j'),
+              'y' : (Fun('v', Ind, RecType({'a' : Ind,
+                                            'c' : PType(man, ['v'])})), ['x']),
+              'z' : Ind})
+T2 = RecType({'x' : Ind,
+              'y' : (Fun('v', Ind, RecType({'a' : Ind,
+                                            'c' : PType(man, ['v'])})), ['z']),
+              'z' : SingletonType(Ind, 'j')})
+print(
+    show(
+        T1.merge(T2)
+        )
+        )                                                              
+# In the previous Oz implementation there was an operation that would simplify
+# dependent types when the path associated with them pointed to a singleton
+# type.  Not (yet) implemented here.
+
+example(97)
+T1 = RecType({'a' : Ind,
+              'b' : Ind})
+T2 = RecType({'a' : SingletonType(Ind, 'j')})
+print(
+    show(
+        T1.merge(T2)
+        )
+        )
+
+example(98)
+T1 = Re
+T2 = RecType({'a' : Ind})
+print(
+    show(
+        T1.merge(T2)
+        )
+        )
+
+example(99)
+T1 = RecType({'a' : PType(man, ['j'])})
+T2 = RecType({'a' : PType(man, ['m'])})
+print(
+    show(
+        T1.merge(T2)
+        )
+        )
                                                         
+example(100)
+T1 = RecType({'x' : Ind,
+              'e' : (Fun('v',Ind,PType(man,['v'])),['x'])})
+T2 = RecType({'e' : PType(man,['j'])})
+print(
+    show(
+        T1.merge(T2)
+        )
+        )
+print(
+    show(
+        T2.merge(T1)
+        )
+        )
+
+example(101)
+T1 = Ind
+T2 = RecTy
+print(
+    show(
+        T1.amerge(T2)
+        )
+        )
 
 
-             
+example(102)
+T1 = RecType({'agenda' : SingletonType(ListType(Ty), [RecType({'e' : PType(run,['j'])})]),
+              'latest_move' : SingletonType(ListType(Re),[])})
+T2 = RecType({'agenda' : SingletonType(ListType(Ty),[]),
+              'latest_move' : RecType({'e' : PType(run,['j'])})})
+print(
+    show(
+        T1.amerge(T2)
+        )
+        )             
+
+example(103)
+T1 = RecType({'x' : Ind,
+              'agenda' : (Fun('v',Ind,SingletonType(ListType(Ty), [RecType({'e' : PType(run,['v'])})])),['x']),
+              'latest_move' : SingletonType(ListType(Re),[])})
+T2 = RecType({'x' : Ind,
+              'agenda' : SingletonType(ListType(Ty),[]),
+              'latest_move' : (Fun('v',Ind,RecType({'e' : PType(run,['v'])})),['x'])})
+print(
+    show(
+        T1.amerge(T2)
+        )
+        )
+
+example(104)
+T1 = RecType({'x' : Ind,
+              'e' : (Fun('v',Ind,PType(run,['v'])),['x'])})
+T2 = RecType({'x' : Ind,
+              'e' : (Fun('v',Ind,PType(man,['v'])),['x'])})
+print(
+    show(
+        T1.merge(T2)
+        )
+        )
+print(
+    show(
+        T1.amerge(T2)
+        )
+        )
+
+example(105)
+T1 = RecType({'x' : Ind,
+              'e' : (Fun('v',Ind,PType(run,['v'])),['x'])})
+T2 = RecType({'y' : Ind,
+              'e' : (Fun('v',Ind,PType(man,['v'])),['y'])})
+print(
+    show(
+        T1.merge(T2)
+        )
+        )
+print(
+    show(
+        T1.amerge(T2)
+        )
+        )
+
+example(106)
+T1 = RecType({'x' : Ind,
+              'e' : (Fun('v',Ind,RecType({'y' : Ind,
+                                          'e' : PType(run,['v'])})),['x'])})
+T2 = RecType({'y' : Ind,
+              'e' : (Fun('v',Ind,PType(man,['v'])),['y'])})
+print(
+    show(
+        T1.merge(T2)
+        )
+        )
+print(
+    show(
+        T1.amerge(T2)
+        )
+        )
+
+
+example(107)
+T1 = RecType({'x' : Ind,
+              'e' : (Fun('v',Ind,RecType({'y' : Ind,
+                                          'e' : PType(run,['v'])})),['x'])})
+T2 = RecType({'y' : Ind,
+              'e' : (Fun('v',Ind,RecType({'x' : Ind,
+                                          'e' : PType(man,['v'])})),['y'])})
+print(
+    show(
+        T1.merge(T2)
+        )
+        )
+print(
+    show(
+        T1.amerge(T2)
+        )
+        )
+
+example(108)
+s = TTRString(['e1','e2'])
+print(show(s))
+
+
+example(109)
+T = TTRStringType([PType(run,['j']),PType(run,['m'])])
+print(show(T))
+print(T.validate())
+ttrace()
+print(show(T.learn_witness_condition(lambda x: x)))
+nottrace()
+print(show(T.create()))
+print(show(T.create_hypobj()))
+
+example(110)
+T = KPlusStringType(RecTy)
+print(show(T))
+print(
+    show(
+        T.query(TTRString([RecType({'e' : PType(run,['j'])}),
+                           RecType({'e' : PType(run,['m'])})]))
+        )
+    )
+print(T.validate())
+ttrace()
+print(show(T.learn_witness_condition(lambda x: x)))
+nottrace()
+print(show(T.create()))
+print(show(T.create_hypobj()))
+
+example(111)
+T1 = TTRStringType([Re,Re])
+T2 = KPlusStringType(Re)
+print(show(T1.subtype_of(T2)))
+print(show(T2.subtype_of(T1)))
+
+example(112)
+T1 = TTRStringType([Re,Re])
+T2 = TTRStringType([RecType({'x' : Ind}), RecType({'y' : Ind})])
+print(show(T1.subtype_of(T2)))
+print(show(T2.subtype_of(T1)))
+
+example(113)
+T1 = KPlusStringType(Re)
+T2 = TTRStringType([RecType({'x' : Ind}), RecType({'y' : Ind})])
+print(show(T1.subtype_of(T2)))
+print(show(T2.subtype_of(T1)))
+
+example(114)
+f = Fun('v',Ty,TTRStringType([RecType({'x' : 'v'}), RecType({'y' : 'v'})]))
+print(show(f.app(Ind)))
+
+example(115)
+f = Fun('v',Ty,KPlusStringType(RecType({'x' : 'v'})))
+print(show(f.app(Ind)))
+
+example(116)
+T1 = TTRStringType([RecType({'x' : Ind}), Re])
+T2 = TTRStringType([Re, RecType({'y' : Ind})])
+print(show(T1.merge(T2)))
+print(show(T1.amerge(T2)))
+
+example(117)
+T1 = TTRStringType([RecType({'x' : Ind}), RecType({'x' : Ind})])
+T2 = TTRStringType([Re, RecType({'x' : Ty})])
+print(show(T1.merge(T2)))
+print(show(T1.amerge(T2)))
+
+example(118)
+T1 = KPlusStringType(RecType({'x':Ind}))
+T2 = KPlusStringType(Re)
+print(show(T1.merge(T2)))
+print(show(T1.amerge(T2)))
+
+example(119)
+T1 = KPlusStringType(RecType({'x':Ind}))
+T2 = KPlusStringType(Ty)
+print(show(T1.merge(T2)))
+print(show(T1.amerge(T2)))
+
+example(120)
+T1 = TTRStringType([RecType({'x' : Ind}), RecType({'x' : Ind})])
+T2 = KPlusStringType(RecType({'x':Ind}))
+print(show(T1.merge(T2)))
+print(show(T1.amerge(T2)))
+
+example(121)
+T1 = TTRStringType([RecType({'x' : Ind}), RecType({'x' : Ind})])
+T2 = KPlusStringType(Ty)
+print(show(T1.merge(T2)))
+print(show(T1.amerge(T2)))
+
+
