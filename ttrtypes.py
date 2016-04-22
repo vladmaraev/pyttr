@@ -170,7 +170,8 @@ class MeetType(Type):
         self.witness_cache.append(a)
         return a
     def create_hypobj(self):
-        return HypObj([self.comps.left,self.comps.right])
+        return HypObj([self.comps.left,self.comps.right,
+                       self.comps.left.merge(self.comps.right)])
     def subst(self,v,a):
         if self == v:
             return a
