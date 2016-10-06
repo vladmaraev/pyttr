@@ -1,5 +1,5 @@
 from collections import deque
-from utils import show,ttracing
+from utils import show,ttracing,substitute
 
 class Rec(object):
     def __init__(self,d={}):
@@ -96,7 +96,7 @@ class Rec(object):
             elif isinstance(lval,str):
                 res.addfield(l,lval)
             else: 
-                res.addfield(l,lval.subst(v,a))
+                res.addfield(l,substitute(lval,v,a))
         return res
 
     def flatten(self):
