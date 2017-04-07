@@ -19,6 +19,21 @@ This implementation covers a core of TTR, including:
      Possibilities (types may have different witnesses in different
      		   possibilities)
      
-     
+  
+7th April 2017
+
+The query method in ttrtypes will now add an object to the witness_cache that it
+computes as a witness on the basis of the witness conditions.
+
+Rudimentary support for projections from ttr variables in ttrtypes: lazy objects
+like LazyObj(['r','.','x'])
+
+Added in_poss method to functions in ttrtypes to restrict the domain type to a
+given possibility
+
+Judging an object to be of a meet type (ttrtypes) will now judge that object to
+be of the two component types of the meet type. 
+
+A preliminary implementation of neural TTR has been added (neurons, nu, example-neurons, example-nu) together with a Jupiter notebook which is partially developed corresponding to example-nu (nu.ipynb). 
      
 

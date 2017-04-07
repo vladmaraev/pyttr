@@ -62,7 +62,12 @@ class Type:
                 return a.eval().type().subtype_of(self)
             else:
                 return self.query(a.eval())
-        else: return some_condition(self.witness_conditions,a)
+        else: 
+            if some_condition(self.witness_conditions,a):
+                self.witness_cache.append(a)
+                return True
+            else:
+                return False
         
     def query_nonspec(self):
         if self.witness_cache == []:
@@ -140,6 +145,16 @@ class PType(Type):
                 elif isinstance(arg,str): newargs.append(arg)
                 else: newargs.append(substitute(arg,v,a))      #arg.subst(v,a))
             return PType(self.comps.pred,newargs)
+    def eval(self):
+        newargs = []
+        for arg in self.comps.args:
+            if 'eval' in dir(arg):
+                newargs.append(arg.eval())
+            else:
+                newargs.append(arg)
+        self.comps.args = newargs
+        return self
+            
     
 class MeetType(Type):
     def __init__(self,T1,T2): 
@@ -158,6 +173,11 @@ class MeetType(Type):
                 and isinstance(self.comps.right, Type):
             return True
         else: return False
+    def judge(self,a):
+        if self.comps.left.judge(a) and self.comps.right.judge(a):
+            return True
+        else:
+            return False
     def judge_nonspec(self):
         if self.witness_cache == [] and [x for x in self.comps.left.witness_cache if x in self.comps.right.witness_cache] == []:
             new = self.comps.left.create()
@@ -398,6 +418,10 @@ class RecType(Type):
                 res.addfield(l,substitute(self.comps.__getattribute__(l),v,a))
         #print(show(res))
         return res
+
+    def eval(self):
+        self.comps.eval()
+        return self
 
     def merge(self,T):
         if isinstance(T,RecType):
@@ -761,7 +785,10 @@ class Fun(object):
     def subst(self,v,a):
         if self.var == v:
             return self  # v is bound and not replaced
-        else: return Fun(self.var,substitute(self.domain_type,v,a),substitute(self.body,v,a))        
+        else: return Fun(self.var,substitute(self.domain_type,v,a),substitute(self.body,v,a))
+    def in_poss(self,M):
+        self.domain_type = self.domain_type.in_poss(M)
+        return self
 
 def merge_dep_types(f1,f2):
     if isinstance(f1,Type) and isinstance(f1,Type):
@@ -834,6 +861,9 @@ class LazyObj(object):
         elif isinstance(self.oplist[0],Fun) and\
                 self.oplist[1] == '@':
             return self.oplist[0].app(self.oplist[2])
+        elif isinstance(self.oplist[0],Rec) and\
+                self.oplist[1] == '.':
+            return self.oplist[0].__getattribute__(self.oplist[2])
         else: return self
     def type(self):
         if self.oplist[1] == '@':

@@ -1,0 +1,24 @@
+This is the beginnings of a TTR implementation in Python 3.4.3.  Run
+the examples in the files example-records.py and example-types.py
+
+This implementation covers a core of TTR, including:
+     Basic types
+     Ptypes (types constructed with predicates and their arguments)
+     Meet (intersection) types
+     Join (union) types
+     Function types
+     List types
+     Record types
+     String types
+     Judging (assigning objects to types)
+     Querying (asking whether an object of a type)
+     Adding witness conditions to types
+     Creating objects of types
+     Subtyping
+     Type merging (including asymmetric type merging)
+     Possibilities (type may have different witnesses in different
+     		   possibilities)
+     
+     
+     
+

@@ -99,6 +99,13 @@ class Rec(object):
                 res.addfield(l,substitute(lval,v,a))
         return res
 
+    def eval(self):
+        for l in self.__dict__.keys():
+            lval = self.__getattribute__(l)
+            if 'eval' in dir(lval):
+                self.__setattr__(l,lval.eval())
+        return self
+                
     def flatten(self):
         res = Rec()
         for l in self.__dict__.keys():
