@@ -98,8 +98,13 @@ class Type_n(ttr.Type):
     #     off = InhibitType_n(self).getapat(network).merge(InhibitType_n(a_nu).getapat(network))
     #     return on.concat(off)
     def add_grandmother(self,network):
-        network.add_neuron(self.name)
+        n = network.add_neuron(self.name)
         self.apats[network.name] = ActivityPattern([[len(network.neurons)-1]])
+        return n
+    def add_switch_grandmother(self,network):
+        n = network.add_switch_neuron(self.name)
+        self.apats[network.name] = ActivityPattern([[len(network.neurons)-1]])
+        return n
     def create_n(self,network):
         network.realize_apat(self.getapat(network))
     def inhibit_n(self,network):
