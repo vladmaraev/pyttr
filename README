@@ -49,3 +49,5 @@ A preliminary jupyter notebook (lspc.ipynb) has been added with
 examples from the paper Interfacing Language, Spatial Perception and
 Cognition in Type Theory with Records by Simon Dobnik and Robin Cooper
 (to appear in Journal of Language Modelling).
+
+[![Binder](http://mybinder.org/badge.svg)](http://mybinder.org:/repo/gu-clasp/pyttr)
