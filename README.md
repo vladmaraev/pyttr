@@ -1,3 +1,5 @@
+[![Binder](http://mybinder.org/badge.svg)](http://mybinder.org:/repo/robincooper/pyttr)
+
 This is the beginnings of a TTR implementation in Python 3.4.3.  Run
 the examples in the files example-records.py and example-types.py
 
