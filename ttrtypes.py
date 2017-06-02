@@ -852,7 +852,7 @@ class LazyObj(object):
         self.oplist = strlist
     def subst(self,v,a):
         self.oplist = substitute(self.oplist,v,a)
-        return self
+        return self.eval()
     def eval(self):
         if isinstance(self.oplist[0],list) and\
                 self.oplist[1] == '+' and\
@@ -864,6 +864,13 @@ class LazyObj(object):
         elif isinstance(self.oplist[0],Rec) and\
                 self.oplist[1] == '.':
             return self.oplist[0].__getattribute__(self.oplist[2])
+        elif isinstance(self.oplist[0],LazyObj):
+            oldoplist = self.oplist
+            self.oplist = [self.oplist[0].eval(),self.oplist[1],self.oplist[2]]
+            if not oldoplist == self.oplist:
+                return self.eval()
+            else:
+                return self
         else: return self
     def type(self):
         if self.oplist[1] == '@':
@@ -880,12 +887,15 @@ class LazyObj(object):
         return show(self.oplist)
 
 class Possibility:
-    def __init__(self,name='',d={}):
+    def __init__(self,name='',d=None):
         self.name = name
         if self.name == '': self.name = gensym('M')
-        self.model = d
+        if d is None:
+            self.model={}
+        else:
+            self.model = d
     def show(self):
-        return '\n'+self.name + ':\n'+'_'*45 +'\n'+ '\n'.join([show(i)+': '+str(self.model[i].witness_cache) for i in self.model])+'\n'+'_'*45+'\n'
+        return '\n'+self.name + ':\n'+'_'*45 +'\n'+ '\n'.join([show(i)+': '+show(self.model[i].witness_cache) for i in self.model])+'\n'+'_'*45+'\n'
 
 class AbsPath(object):
     def __init__(self,rec,path):

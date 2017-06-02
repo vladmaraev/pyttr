@@ -84,6 +84,22 @@ class OrNeuron(Neuron):
                                     'f' : OrFun},
                           'axon' : 0  
                           })
+class SwitchNeuron(Neuron):
+    def __init__(self,name=None,n=2):
+        if name is None:
+            self.name = gensym('switchneuron')
+        else:
+            self.name = name
+        self.network = False
+        self.synapses = []
+        self.state = Rec({'dendrites' : np.array([0]*n),
+                          'body' : {'w' : np.array([1]*n),
+                                    'theta' : 1,
+                                    'f' : SwitchFun},
+                          'axon' : 0  
+                          })
+    def fire(self,time='tick'):
+        self.excite(time,np.array([self.state.body.theta,self.state.body.theta-.1]))
 
 class DelayNeuron(Neuron):
     def __init__(self,delay=1,name='Delay',n=1):
@@ -97,7 +113,31 @@ class DelayNeuron(Neuron):
         else:
             Neuron.update(self)
             self.remaining_delay = self.delay
-    
+
+# class HybridDelayNeuron(DelayNeuron):
+#     def __init__(self,delay=1,name='Delay',n=1):
+#         Neuron.__init__(self,name,n)
+#         self.delay = delay
+#         self.remaining_delay = delay
+#         self.memory = None
+#     def update(self):
+#         val = self.state.body.f(self.state.dendrites,
+#                                 self.state.body.w,
+#                                 self.state.body.theta)
+#         if not self.memory:
+#             self.memory = val
+#         if self.remaining_delay:
+#             self.remaining_delay = self.remaining_delay-1
+#             self.mark_update()
+#         else:
+#             self.state.axon = self.memory
+#             self.memory = self.state.body.f(self.state.dendrites,
+#                                 self.state.body.w,
+#                                 self.state.body.theta)
+#             self.remaining_delay = self.delay
+#             for s in self.synapses:
+#                 s.update()
+            
             
 
 
@@ -123,22 +163,47 @@ class InhibitorySynapse(Synapse):
         Synapse.__init__(self,n1,n2,dend_num=0)
         self.state.w = -1
 
+# class HybridSynapse(Synapse):
+#     def update(self):
+#         self.state.axon_mem.append(self.from_neuron.state.axon)
+#         val = self.state.f(self.state.axon_mem, self.state.w)
+#         if not self.to_neuron.neuron.state.dendrites[self.to_neuron.dend_num] == val:
+#             self.to_neuron.neuron.state.dendrites[self.to_neuron.dend_num] = val
+#             self.state.axon_mem = []
+#             self.to_neuron.neuron.mark_update()
+
 class Network(object):
     def __init__(self,neurons=np.array([])):
         self.name = gensym('network')
         self.neurons = neurons
         self.history = False
         self.to_update = []
-    def add_neuron(self,name=None):
-        n = Neuron(name)
+    def add_neuron(self,name=None,den=1):
+        neur = Neuron(name,n=den)
+        neur.network = self
+        self.neurons = np.concatenate((self.neurons,
+                                       np.array([neur])))
+        if not self.history is False:
+           self.history = np.array([list(r)+[2] for r in self.history])
+        return neur
+    def add_switch_neuron(self,name=None):
+        neur = SwitchNeuron(name)
+        neur.network = self
+        self.neurons = np.concatenate((self.neurons,
+                                       np.array([neur])))
+        if not self.history is False:
+           self.history = np.array([list(r)+[2] for r in self.history])
+        return neur
+    def add_delay_neuron(self,delay=1,name='Delay'):
+        n = DelayNeuron(delay,name)
         n.network = self
         self.neurons = np.concatenate((self.neurons,
                                        np.array([n])))
         if not self.history is False:
-           self.history = np.array([list(r)+[2] for r in self.history])
+           self.history = np.array([[list(r)+[2]] for r in self.history])
         return n
-    def add_delay_neuron(self,delay=1,name='Delay'):
-        n = DelayNeuron(delay,name)
+    def add_hybrid_delay_neuron(self,delay=1,name='Delay'):
+        n = HybridDelayNeuron(delay,name)
         n.network = self
         self.neurons = np.concatenate((self.neurons,
                                        np.array([n])))
@@ -163,13 +228,13 @@ class Network(object):
             self.neurons[i].excite('notick',ar)
         if self.ntracing():
             self.ntrace()
-    def inhibit(self,neurons=None):
+    def inhibit(self,time='tick',neurons=None):
         if neurons is None:
             neurons = range(len(self.neurons))
         for i in neurons:
             n = self.neurons[i]
             n.excite('notick',np.array([0]*len(n.state.dendrites)))
-        if self.ntracing():
+        if self.ntracing() and time is 'tick':
             self.ntrace()
     def fire(self,neurons=None):
         if neurons is None:
@@ -429,6 +494,12 @@ def OrFun(dendrites,w,theta):
     else:
         return 0
 
+def SwitchFun(dendrites,w,theta):
+    if dendrites[0] * w[0] >= theta and dendrites[1]*w[1] < theta:
+        return 1
+    else:
+        return 0
+
 
 # Functions for synapses
 
@@ -437,3 +508,9 @@ def OneFun(l,w):
         return w
     else:
         return 0
+
+# def HybridOneFun(l,w):
+#     if l[0] is 1:
+#         return w
+#     else:
+#         return 0
