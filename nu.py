@@ -111,6 +111,9 @@ class Type_n(ttr.Type):
         network.inhibit_apat(self.getapat(network))
     def query_n(self,network):
         return network.match_apat(self.getapat(network))
+    def query_last_n(self,network):
+        apat = self.getapat(network)
+        return network.match_apat(apat,network.history[-len(apat.neurons):])
     def judgmnt_type_n(self,objn,assgn=None):
         T_n = MeetType_n(self,objn,assgn)
         return StringType_n([T_n,InhibitType_n(T_n)],assgn)
