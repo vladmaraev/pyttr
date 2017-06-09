@@ -49,3 +49,16 @@ A preliminary jupyter notebook (lspc.ipynb) has been added with
 examples from the paper Interfacing Language, Spatial Perception and
 Cognition in Type Theory with Records by Simon Dobnik and Robin Cooper
 (to appear in Journal of Language Modelling).
+
+
+9th June 2017
+
+Added animat.ipynb -- a very simple sheep that learns to associate
+types of the environment with types of actions
+
+Added switch neurons to neural TTR
+Added query_last_n to Type_n -- queries whether the end segment of the
+history matches the activity pattern associated with the type.
+(query_n queries whether any segment of the history matches.)
+
+

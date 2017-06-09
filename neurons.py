@@ -25,14 +25,19 @@ class Neuron(object):
                                     'f' : AndFun},
                           'axon' : 0  
                           })
-    def update(self):
+    def update(self,force=None):
         val = self.state.body.f(self.state.dendrites,
                                 self.state.body.w,
                                 self.state.body.theta)
-        if not val == self.state.axon:
-            self.state.axon = val
-            for s in self.synapses:
-                s.update()
+        if force:
+           self.state.axon = val
+           for s in self.synapses:
+               s.update()
+        else:
+            if not val == self.state.axon:
+                self.state.axon = val
+                for s in self.synapses:
+                    s.update()
     def mark_update(self):
         if self.network:
             self.network.to_update.append(self)
@@ -210,15 +215,15 @@ class Network(object):
         if not self.history is False:
            self.history = np.array([[list(r)+[2]] for r in self.history])
         return n
-    def run(self):
+    def run(self,force=None):
         update_list = self.to_update
         self.to_update = []
         if update_list:
             for i in update_list:
-                i.update()
+                i.update(force)
             if self.ntracing():
                 self.ntrace()
-            self.run()
+            self.run(force)
     def excite(self,neurons=None,arrays=None):
         if neurons is None:
             neurons = range(len(self.neurons))
