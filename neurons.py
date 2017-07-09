@@ -111,12 +111,12 @@ class DelayNeuron(Neuron):
         Neuron.__init__(self,name,n)
         self.delay = delay
         self.remaining_delay = delay
-    def update(self):
+    def update(self,force=None):
         if self.remaining_delay and self.inactive():
             self.remaining_delay = self.remaining_delay-1
             self.mark_update()
         else:
-            Neuron.update(self)
+            Neuron.update(self,force)
             self.remaining_delay = self.delay
 
 # class HybridDelayNeuron(DelayNeuron):
