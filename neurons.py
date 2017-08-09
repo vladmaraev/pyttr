@@ -319,13 +319,18 @@ class Network(object):
     def ntracing(self):
         return isinstance(self.history,np.ndarray)
     def display_history(self):
-        print(
-            tabulate(
-                np.row_stack((np.array([n.name for n in self.neurons]),
-                            self.history))
-                .transpose()
-                )
-                )
+        l = np.row_stack((np.array([n.name for n in self.neurons]),
+                            self.history)).transpose()
+        l[l=='2'] = '*'
+        print(tabulate(l))
+                
+        # print(
+        #     tabulate(
+        #         np.row_stack((np.array([n.name for n in self.neurons]),
+        #                     self.history))
+        #         .transpose()
+        #         )
+        #         )
 
 
 class ActivityPattern(object):
