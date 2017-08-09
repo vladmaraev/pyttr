@@ -62,3 +62,8 @@ history matches the activity pattern associated with the type.
 (query_n queries whether any segment of the history matches.)
 
 
+9th August 2017
+
+Improved the display of network histories for neural ttr (nu.ipynb) as
+defined in neurons.py.  Neurons which are not present at a time step
+are now represented with '*' (rather than '2').
